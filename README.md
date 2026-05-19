@@ -10,8 +10,15 @@ Most mock tools make you switch to a GUI, export config, or restart a process. T
 - Add, edit, duplicate, delete, enable, and disable mock endpoints
 - Match by HTTP method and path
 - Custom status code, content type, response body, and headers
+- Path parameters such as `/api/users/:id` or `/api/users/{id}`
+- Response templates such as `{{params.id}}`, `{{query.q}}`, `{{method}}`, and `{{path}}`
+- Per-route latency simulation
+- Multiple responses per route with `first`, `cycle`, or `random` selection
+- JSON request body matching with fields like `email` or `user.email`
 - Request log visible inside the TUI
 - Save and load endpoint definitions as JSON
+- Hot reload route files while the server is running
+- Import starter routes from OpenAPI JSON
 - Headless mode for CI, demos, and scripted frontend work
 - Zero runtime dependencies
 
@@ -39,10 +46,32 @@ termimock --host 127.0.0.1 --port 9000 --file examples/sample-routes.json
 termimock --headless --file examples/sample-routes.json
 ```
 
+Route files reload automatically when changed. Use `--no-watch` to disable that behavior.
+
+## Import OpenAPI
+
+Generate a starter route file from an OpenAPI JSON document:
+
+```bash
+termimock --import-openapi openapi.json --file routes.json
+```
+
+Then run it:
+
+```bash
+termimock --file routes.json
+```
+
 Then test it:
 
 ```bash
 curl http://127.0.0.1:8080/api/user
+```
+
+Try a templated route:
+
+```bash
+curl "http://127.0.0.1:8080/api/users/42?tab=settings"
 ```
 
 If port `8080` is already busy, choose another port:
@@ -79,9 +108,49 @@ termimock --headless --port 9000 --file examples/sample-routes.json
         "X-Mock": "termimock"
       },
       "body": "{\"id\":1,\"name\":\"Ada\"}",
+      "delay_ms": 0,
       "enabled": true
     }
   ]
+}
+```
+
+Path parameters can use either `:id` or `{id}` syntax. Response bodies can reference `{{params.id}}`, `{{query.name}}`, `{{method}}`, and `{{path}}`.
+
+Routes can also define response variants:
+
+```json
+{
+  "method": "GET",
+  "path": "/api/flaky",
+  "response_mode": "cycle",
+  "responses": [
+    {
+      "status": 200,
+      "content_type": "application/json",
+      "headers": {},
+      "body": "{\"ok\":true}"
+    },
+    {
+      "status": 500,
+      "content_type": "application/json",
+      "headers": {},
+      "body": "{\"ok\":false}"
+    }
+  ]
+}
+```
+
+POST routes can match JSON request bodies:
+
+```json
+{
+  "method": "POST",
+  "path": "/api/login",
+  "body_match": {
+    "email": "admin@test.com"
+  },
+  "body": "{\"token\":\"dev-token\",\"email\":\"{{body.email}}\"}"
 }
 ```
 

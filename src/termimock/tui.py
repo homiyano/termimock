@@ -54,7 +54,7 @@ class Tui:
         self._add(stdscr, 0, 0, title[: width - 1], curses.A_BOLD)
         self._add(stdscr, 1, 0, self.message[: width - 1])
         self._add(stdscr, 3, 0, "Routes", curses.A_BOLD)
-        self._add(stdscr, 4, 0, "    METHOD  PATH                         ST  CONTENT TYPE", curses.A_DIM)
+        self._add(stdscr, 4, 0, "    METHOD  PATH                         ST  DELAY   VARIANTS  CONTENT TYPE", curses.A_DIM)
 
         routes = self.store.list_routes()
         route_area_bottom = max(6, height // 2)
@@ -100,10 +100,11 @@ class Tui:
                 return None
             path = self._prompt(stdscr, "Path", existing.path)
             status = int(self._prompt(stdscr, "Status", str(existing.status)))
+            delay_ms = int(self._prompt(stdscr, "Delay ms", str(existing.delay_ms)))
             content_type = self._prompt(stdscr, "Content-Type", existing.content_type)
             headers = dict(existing.headers)
             body = self._prompt(stdscr, "Body", existing.body)
-            new_route = Route(method, path, status, content_type, headers, body, existing.enabled)
+            new_route = Route(method, path, status, content_type, headers, body, existing.enabled, delay_ms, body_match=existing.body_match)
             if route is None:
                 self.store.add_route(new_route)
                 self.selected = len(self.store.list_routes()) - 1
@@ -138,7 +139,17 @@ class Tui:
         routes = self.store.list_routes()
         if routes:
             route = routes[self.selected]
-            clone = Route(route.method, route.path, route.status, route.content_type, route.headers, route.body, route.enabled)
+            clone = Route(
+                route.method,
+                route.path,
+                route.status,
+                route.content_type,
+                route.headers,
+                route.body,
+                route.enabled,
+                route.delay_ms,
+                body_match=route.body_match,
+            )
             self.store.add_route(clone)
             self.selected = len(self.store.list_routes()) - 1
             self.message = "Route cloned"
@@ -162,4 +173,3 @@ class Tui:
             self.message = f"Reloaded {self.route_file}"
         else:
             self.message = f"{self.route_file} does not exist"
-

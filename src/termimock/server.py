@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
+import time
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from .models import RequestLogEntry
 from .store import RouteStore
@@ -69,8 +71,9 @@ class MockServer:
 
             def _handle(self, send_body: bool = True) -> None:
                 request_path = urlsplit(self.path).path
-                route = store.find(self.command, request_path)
-                if route is None:
+                body_json = self._read_json_body()
+                match = store.find(self.command, request_path, body_json)
+                if match is None:
                     body = b'{"error":"No mock route matched this request"}'
                     self.send_response(404)
                     self.send_header("Content-Type", "application/json")
@@ -81,17 +84,67 @@ class MockServer:
                     store.add_log(RequestLogEntry(self.command, request_path, 404, False))
                     return
 
-                body = route.body.encode("utf-8")
-                self.send_response(route.status)
-                self.send_header("Content-Type", route.content_type)
-                for name, value in route.headers.items():
+                route = match.route
+                route_response = store.select_response(route)
+                if route.delay_ms:
+                    time.sleep(route.delay_ms / 1000)
+                rendered_body = render_template(
+                    route_response.body,
+                    {
+                        "method": self.command,
+                        "path": request_path,
+                        "params": match.params,
+                        "query": parse_query(self.path),
+                        "body": body_json if isinstance(body_json, dict) else {},
+                    },
+                )
+                body = rendered_body.encode("utf-8")
+                self.send_response(route_response.status)
+                self.send_header("Content-Type", route_response.content_type)
+                for name, value in route_response.headers.items():
                     if name.lower() not in {"content-type", "content-length"}:
                         self.send_header(name, value)
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 if send_body:
                     self.wfile.write(body)
-                store.add_log(RequestLogEntry(self.command, request_path, route.status, True))
+                store.add_log(RequestLogEntry(self.command, request_path, route_response.status, True))
+
+            def _read_json_body(self) -> object | None:
+                content_length = int(self.headers.get("Content-Length", "0") or "0")
+                if content_length <= 0:
+                    return None
+                raw_body = self.rfile.read(content_length)
+                try:
+                    return json.loads(raw_body.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    return None
 
         return Handler
 
+
+def parse_query(path: str) -> dict[str, str]:
+    return {key: values[-1] for key, values in parse_qs(urlsplit(path).query).items() if values}
+
+
+def render_template(value: str, context: dict[str, Any]) -> str:
+    rendered = value
+    for scope in ("params", "query", "body"):
+        for key, item in flatten_values(context.get(scope, {})).items():
+            rendered = rendered.replace(f"{{{{{scope}.{key}}}}}", str(item))
+    rendered = rendered.replace("{{method}}", str(context["method"]))
+    rendered = rendered.replace("{{path}}", str(context["path"]))
+    return rendered
+
+
+def flatten_values(data: object, prefix: str = "") -> dict[str, object]:
+    if not isinstance(data, dict):
+        return {}
+    values: dict[str, object] = {}
+    for key, value in data.items():
+        name = f"{prefix}.{key}" if prefix else str(key)
+        if isinstance(value, dict):
+            values.update(flatten_values(value, name))
+        else:
+            values[name] = value
+    return values

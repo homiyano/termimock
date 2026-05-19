@@ -8,9 +8,11 @@ import time
 from pathlib import Path
 
 from .models import Route
+from .openapi import import_openapi
 from .server import MockServer
 from .store import RouteStore
 from .tui import Tui
+from .watcher import RouteFileWatcher
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,13 +20,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind. Defaults to 127.0.0.1.")
     parser.add_argument("--port", default=8080, type=int, help="Port to bind. Defaults to 8080.")
     parser.add_argument("--file", type=Path, help="Route file to load and save.")
+    parser.add_argument("--import-openapi", type=Path, help="Import an OpenAPI JSON file into the route file and exit.")
     parser.add_argument("--headless", action="store_true", help="Run the mock server without the TUI.")
+    parser.add_argument("--no-watch", action="store_true", help="Disable automatic reload when the route file changes.")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     route_file = args.file or Path("routes.json")
+    if args.import_openapi:
+        if not args.import_openapi.exists():
+            print(f"Termimock OpenAPI file not found: {args.import_openapi}", file=sys.stderr)
+            return 1
+        store = RouteStore(import_openapi(args.import_openapi))
+        store.save(route_file)
+        print(f"Imported {len(store.list_routes())} routes into {route_file}")
+        return 0
+
     store = RouteStore()
     if route_file.exists():
         store.load(route_file)
@@ -35,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         store.add_route(Route("GET", "/api/health", body='{"ok":true}'))
 
     server = MockServer(store, args.host, args.port)
+    watcher = None
     try:
         server.start()
     except OSError as exc:
@@ -46,6 +60,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         raise
+    if not args.no_watch and route_file.exists():
+        watcher = RouteFileWatcher(store, route_file, on_error=lambda exc: print(f"Termimock reload failed: {exc}", file=sys.stderr))
+        watcher.start()
     try:
         if args.headless:
             print(f"Termimock listening on {server.address}. Press Ctrl+C to stop.", flush=True)
@@ -53,6 +70,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             Tui(store, server, route_file).run()
     finally:
+        if watcher:
+            watcher.stop()
         server.stop()
     return 0
 

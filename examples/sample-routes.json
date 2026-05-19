@@ -9,6 +9,17 @@
         "X-Mock": "termimock"
       },
       "body": "{\"id\":1,\"name\":\"Ada Lovelace\",\"role\":\"frontend\"}",
+      "delay_ms": 0,
+      "enabled": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "status": 200,
+      "content_type": "application/json",
+      "headers": {},
+      "body": "{\"id\":\"{{params.id}}\",\"tab\":\"{{query.tab}}\"}",
+      "delay_ms": 250,
       "enabled": true
     },
     {
@@ -18,8 +29,36 @@
       "content_type": "application/json",
       "headers": {},
       "body": "{\"token\":\"dev-token\",\"expiresIn\":3600}",
+      "body_match": {
+        "email": "admin@test.com"
+      },
+      "delay_ms": 0,
+      "enabled": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/flaky",
+      "status": 200,
+      "content_type": "application/json",
+      "headers": {},
+      "body": "{}",
+      "delay_ms": 0,
+      "response_mode": "cycle",
+      "responses": [
+        {
+          "status": 200,
+          "content_type": "application/json",
+          "headers": {},
+          "body": "{\"ok\":true}"
+        },
+        {
+          "status": 500,
+          "content_type": "application/json",
+          "headers": {},
+          "body": "{\"ok\":false,\"error\":\"simulated failure\"}"
+        }
+      ],
       "enabled": true
     }
   ]
 }
-
