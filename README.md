@@ -174,3 +174,26 @@ This is an early, hackable version meant to prove the idea cleanly. Good next fe
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests
 ```
+
+## Releases
+
+GitHub Releases are created from version tags. A release builds and attaches the Python wheel and source archive.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+## Container Package
+
+Termimock publishes a container image to GitHub Container Registry.
+
+```bash
+docker run --rm -p 8080:8080 ghcr.io/homiyano/termimock:main
+```
+
+Open the GUI at:
+
+```text
+http://127.0.0.1:8080/_termimock
+```

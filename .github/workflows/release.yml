@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tooling
+        run: python -m pip install --upgrade build
+      - name: Run tests
+        run: python -m unittest discover -s tests
+      - name: Build distributions
+        run: python -m build
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            gh release create "manual-${{ github.run_number }}" dist/* --title "Manual build ${{ github.run_number }}" --notes "Manual build artifacts."
+          else
+            gh release create "${{ github.ref_name }}" dist/* --title "${{ github.ref_name }}" --generate-notes
+          fi
+
