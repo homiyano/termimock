@@ -17,16 +17,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Terminal API mock server with a live TUI.")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind. Defaults to 127.0.0.1.")
     parser.add_argument("--port", default=8080, type=int, help="Port to bind. Defaults to 8080.")
-    parser.add_argument("--file", default="routes.json", type=Path, help="Route file to load and save.")
+    parser.add_argument("--file", type=Path, help="Route file to load and save.")
     parser.add_argument("--headless", action="store_true", help="Run the mock server without the TUI.")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    route_file = args.file or Path("routes.json")
     store = RouteStore()
-    if args.file.exists():
-        store.load(args.file)
+    if route_file.exists():
+        store.load(route_file)
+    elif args.file is not None:
+        print(f"Termimock route file not found: {route_file}", file=sys.stderr)
+        return 1
     else:
         store.add_route(Route("GET", "/api/health", body='{"ok":true}'))
 
@@ -47,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Termimock listening on {server.address}. Press Ctrl+C to stop.", flush=True)
             _wait_forever()
         else:
-            Tui(store, server, args.file).run()
+            Tui(store, server, route_file).run()
     finally:
         server.stop()
     return 0
