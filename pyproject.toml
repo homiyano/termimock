@@ -27,6 +27,12 @@ classifiers = [
   "Topic :: Software Development :: Testing",
 ]
 
+[project.urls]
+Homepage = "https://github.com/homiyano/termimock"
+Repository = "https://github.com/homiyano/termimock"
+Issues = "https://github.com/homiyano/termimock/issues"
+Releases = "https://github.com/homiyano/termimock/releases"
+
 [project.scripts]
 termimock = "termimock.cli:main"
 

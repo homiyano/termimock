@@ -31,6 +31,18 @@ Most mock tools make you switch to a GUI, export config, or restart a process. T
 python3 -m pip install -e .
 ```
 
+After the package is published to PyPI:
+
+```bash
+pipx install termimock
+```
+
+or:
+
+```bash
+python3 -m pip install termimock
+```
+
 ## Run the TUI
 
 ```bash
@@ -183,6 +195,8 @@ GitHub Releases are created from version tags. A release builds and attaches the
 git tag v0.1.0
 git push origin v0.1.0
 ```
+
+Publishing a GitHub Release also publishes the package to PyPI through Trusted Publishing.
 
 ## Container Package
 
