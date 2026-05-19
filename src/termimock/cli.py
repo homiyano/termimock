@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         store.add_route(Route("GET", "/api/health", body='{"ok":true}'))
 
-    server = MockServer(store, args.host, args.port)
+    server = MockServer(store, args.host, args.port, route_file)
     watcher = None
     try:
         server.start()
@@ -65,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         watcher.start()
     try:
         if args.headless:
-            print(f"Termimock listening on {server.address}. Press Ctrl+C to stop.", flush=True)
+            print(f"Termimock listening on {server.address}. GUI: {server.address}/_termimock. Press Ctrl+C to stop.", flush=True)
             _wait_forever()
         else:
             Tui(store, server, route_file).run()

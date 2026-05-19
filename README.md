@@ -16,6 +16,7 @@ Most mock tools make you switch to a GUI, export config, or restart a process. T
 - Multiple responses per route with `first`, `cycle`, or `random` selection
 - JSON request body matching with fields like `email` or `user.email`
 - Request log visible inside the TUI
+- Built-in browser GUI at `/_termimock`
 - Save and load endpoint definitions as JSON
 - Hot reload route files while the server is running
 - Import starter routes from OpenAPI JSON
@@ -45,6 +46,14 @@ termimock --host 127.0.0.1 --port 9000 --file examples/sample-routes.json
 ```bash
 termimock --headless --file examples/sample-routes.json
 ```
+
+Open the built-in GUI:
+
+```text
+http://127.0.0.1:8080/_termimock
+```
+
+The GUI lets you add, edit, duplicate, delete, enable, disable, and save routes from a browser while the mock server keeps running.
 
 Route files reload automatically when changed. Use `--no-watch` to disable that behavior.
 

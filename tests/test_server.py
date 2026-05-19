@@ -149,6 +149,32 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertEqual(body, '{"email":"admin@test.com"}')
 
+    def test_serves_gui_page(self):
+        response, body = self.request("GET", "/_termimock")
+
+        self.assertEqual(response.status, 200)
+        self.assertIn("<title>Termimock</title>", body)
+
+    def test_serves_gui_routes_api(self):
+        response, body = self.request("GET", "/_termimock/api/routes")
+
+        self.assertEqual(response.status, 200)
+        payload = json.loads(body)
+        self.assertEqual(payload["routes"][0]["path"], "/api/user")
+
+    def test_saves_routes_from_gui_api(self):
+        response, body = self.request(
+            "POST",
+            "/_termimock/api/routes",
+            {"routes": [{"method": "GET", "path": "/api/gui", "body": "{\"gui\":true}"}]},
+        )
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(json.loads(body)["routes"][0]["path"], "/api/gui")
+        response, body = self.request("GET", "/api/gui")
+        self.assertEqual(response.status, 200)
+        self.assertEqual(body, '{"gui":true}')
+
     def wait_for_log(self):
         deadline = time.monotonic() + 1
         while time.monotonic() < deadline:
