@@ -4,6 +4,8 @@ Termimock is a terminal API mock server with a TUI. Define mock REST endpoints f
 
 Most mock tools make you switch to a GUI, export config, or restart a process. Termimock keeps the control panel and the mock server together in one terminal session.
 
+![Termimock web GUI](docs/gui.png)
+
 ## Features
 
 - Live local HTTP server and terminal UI in the same process
