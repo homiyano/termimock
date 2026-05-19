@@ -45,6 +45,12 @@ Then test it:
 curl http://127.0.0.1:8080/api/user
 ```
 
+If port `8080` is already busy, choose another port:
+
+```bash
+termimock --headless --port 9000 --file examples/sample-routes.json
+```
+
 ## TUI Shortcuts
 
 | Key | Action |

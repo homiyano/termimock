@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import signal
 import sys
 import time
@@ -30,7 +31,17 @@ def main(argv: list[str] | None = None) -> int:
         store.add_route(Route("GET", "/api/health", body='{"ok":true}'))
 
     server = MockServer(store, args.host, args.port)
-    server.start()
+    try:
+        server.start()
+    except OSError as exc:
+        if exc.errno in {errno.EADDRINUSE, 48}:
+            print(
+                f"Termimock could not start because {args.host}:{args.port} is already in use.\n"
+                f"Try another port, for example: termimock --port {args.port + 1}",
+                file=sys.stderr,
+            )
+            return 1
+        raise
     try:
         if args.headless:
             print(f"Termimock listening on {server.address}. Press Ctrl+C to stop.", flush=True)
@@ -57,4 +68,3 @@ def _wait_forever() -> None:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-

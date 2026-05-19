@@ -1,4 +1,5 @@
 from http.client import HTTPConnection
+import time
 import unittest
 
 from termimock.models import Route
@@ -35,7 +36,7 @@ class ServerTests(unittest.TestCase):
         response, _body = self.request("GET", "/missing")
 
         self.assertEqual(response.status, 404)
-        self.assertEqual(self.store.list_logs()[0].matched, False)
+        self.assertEqual(self.wait_for_log().matched, False)
 
     def test_disabled_route_does_not_match(self):
         route = self.store.list_routes()[0]
@@ -46,7 +47,15 @@ class ServerTests(unittest.TestCase):
 
         self.assertEqual(response.status, 404)
 
+    def wait_for_log(self):
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            logs = self.store.list_logs()
+            if logs:
+                return logs[0]
+            time.sleep(0.01)
+        self.fail("Timed out waiting for request log entry")
+
 
 if __name__ == "__main__":
     unittest.main()
-
